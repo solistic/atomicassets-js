@@ -162,6 +162,13 @@ export class ActionGenerator {
 }
 
 export function toAttributeMap(obj: any, schema: SchemaFormat): AttributeMap {
+    // A translation map from simplified types to their underlying attribute types
+    const translation : any = {
+        image: 'string',
+        ipfs: 'string',
+        bool: 'uint8',
+        double: 'float64'
+    };
     const types: { [id: string]: string } = {};
     const result: AttributeMap = [];
 
@@ -171,8 +178,17 @@ export function toAttributeMap(obj: any, schema: SchemaFormat): AttributeMap {
 
     const keys = Object.keys(obj);
     for (const key of keys) {
-        if (typeof types[key] === 'undefined') {
+        if (typeof types[key] == 'undefined') { /* NOTE this includes the logic fix from #12 */
             throw new SerializationError('field not defined in schema');
+        }
+        // Ensure int value for bool type
+        if ( types[key] == 'bool' ) {
+            obj[key] = obj[key] | 0;
+        }
+        // Translate simplified schema types
+        let keytype = types[key];
+        if ( translation[keytype] ) {
+            keytype = translation[keytype];
         }
 
         result.push({key, value: [types[key], obj[key]]});
